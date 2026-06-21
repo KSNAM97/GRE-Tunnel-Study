@@ -1,3 +1,10 @@
+![Topic](https://img.shields.io/badge/Topic-GRE_Tunnel-blue)
+![Feature](https://img.shields.io/badge/Feature-Point--to--Point%20%7C%20Tunnel_Routing-orange)
+![Vendor](https://img.shields.io/badge/Vendor-Cisco-1BA0D7?logo=cisco&logoColor=white)
+![Tool](https://img.shields.io/badge/Tool-GNS3-2ECC71)
+![Level](https://img.shields.io/badge/Level-Advanced-red)
+
+
 # 🌐 GRE Tunnel Study (Static / Dynamic / MGRE)
 
 > Cisco 라우터를 활용한 **GRE Tunnel (Static / Dynamic / MGRE)** 구성 실습 저장소입니다.  
