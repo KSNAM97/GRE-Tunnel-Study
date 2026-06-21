@@ -33,6 +33,9 @@
               (Spoke)               (Spoke)
 ```
 
+![MGRE_Topology](../../topology/MGRE_Topology.png)
+
+
 ## 🎯 조건 요약
 
 | 항목 | 값 |
