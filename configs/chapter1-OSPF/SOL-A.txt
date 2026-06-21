@@ -1,0 +1,50 @@
+! ============================================
+! Chapter 1. 공중망 구성 (OSPF)
+! Device : R1 (SOL-A / GIT-A)
+! ============================================
+
+en
+conf t
+!
+no ip domain-lookup
+!
+hostname GIT-A
+!
+line con 0
+ logging syn
+ exec-timeout 0 0
+ login
+!
+line vty 0 4
+ password cisco
+ login
+!
+interface loopback 0
+ ip address 100.100.1.1 255.255.255.0
+ ip ospf network point-to-point
+!
+interface loopback 1
+ ip address 100.100.10.1 255.255.255.0
+!
+interface fastethernet 0/0
+ ip address 192.168.10.254 255.255.255.0
+ no shutdown
+!
+interface serial 1/0
+ no shutdown
+ encapsulation frame-relay
+ no frame-relay inverse-arp
+!
+interface serial 1/0.10 point-to-point
+ ip address 121.160.10.1 255.255.255.0
+ frame-relay interface-dlci 103
+!
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface default
+ no passive-interface serial 1/0.10
+ network 100.100.1.0   0.0.0.255 area 0
+ network 121.160.10.0  0.0.0.255 area 0
+!
+end
+write memory
