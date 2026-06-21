@@ -1,0 +1,27 @@
+! ============================================
+! Chapter 4. GRE Tunnel (Dynamic) + EIGRP
+! Device : R1 (SOL-A)
+! Tunnel Source/Dest : Loopback 0 IP 사용
+! Tunnel Network    : 172.16.100.0/24
+! EIGRP AS 100
+! ============================================
+
+en
+conf t
+!
+interface tunnel 12
+ ip address 172.16.100.1 255.255.255.0
+ tunnel source 100.100.1.1
+ tunnel destination 100.100.2.2
+!
+! 사설망 동적 라우팅 (EIGRP)
+router eigrp 100
+ no auto-summary
+ passive-interface default
+ no passive-interface tunnel 12
+ network 192.168.10.0
+ network 100.100.10.0 0.0.0.255
+ network 172.16.100.0 0.0.0.255
+!
+end
+write memory
