@@ -26,10 +26,39 @@
 
 #GRE
 ---
+```
+                  [R3:ISP-1]         [R5:ISP-3]
+                       \                 /
+                        \               /
+                         \             /
+   [R7:PC1]              [FRSW2 Frame-Relay]              [R8:PC2]
+       |                   /            \                    |
+       |                  /              \                   |
+   [SW1:GigaSW]      [R1:SOL-A]      [R2:SOL-B]         [SW2:GigaSW]
+       |                                                     |
+       └──── f0/0 ────────────────────────────── f0/0 ───────┘
+
+                  [R4:ISP-2]         [R6:ISP-4]
+```
+
 ![GRE_Topology](./topology/GRE_Topology.png)
 ---
 
 #MGRE
+```
+                       [ ISP-1 ]
+                          |
+                       [ GIT-HQ ]  ◀── NHRP Server (Hub)
+                       Tunnel123 (172.16.100.1)
+                       /          \
+                      /            \
+               [ ISP-2 ]          [ ISP-3 ]
+                  |                   |
+              [ GIT-A ]            [ GIT-B ]
+          (172.16.100.2)        (172.16.100.3)
+           NHRP Client            NHRP Client
+              (Spoke)               (Spoke)
+```
 ---
 ![MGRE_Topology](./topology/MGRE_Topology.png)
 ---
