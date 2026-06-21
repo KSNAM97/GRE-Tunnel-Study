@@ -23,15 +23,14 @@
 
 ## 1. 토폴로지 (Topology)
 
+#GRE
 ---
-# GRE 토폴로지
 ![GRE_Topology](./topology/GRE_Topology.png)
 ---
-# MGRE 토폴로지
-![MGRE_Topology](./topology/MGRE_Topology.png)
+
+#MGRE
 ---
-
-
+![MGRE_Topology](./topology/MGRE_Topology.png)
 ---
 
 ## 2. 장비 구성 (Device Role)
@@ -104,10 +103,10 @@ GRE Tunnel을 통해 흐르는 패킷 캡슐화 구조:
 
 ```
 ================================================================
-| FR DLCI | New IP Header | GRE Header | Original IP | Payload |
+| FR DLCI | New IP Header  | GRE Header  | Original IP    | Payload |
 ----------------------------------------------------------------
-|   103   | SA:121.160.10.1| Type 0x0800| SA:192.168.10.1| ICMP |
-|         | DA:121.160.20.2|            | DA:192.168.20.2|     |
+|   103   | SA:121.160.10.1| Type 0x0800 | SA:192.168.10.1| ICMP    |
+|         | DA:121.160.20.2|             | DA:192.168.20.2|         |
 ================================================================
 ```
 
