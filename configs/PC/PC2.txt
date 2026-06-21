@@ -1,0 +1,28 @@
+! ============================================
+! Device : R8 (PC2 - SOL-B 내부 PC)
+! ============================================
+
+en
+conf t
+!
+no ip domain-lookup
+!
+hostname PC2
+!
+line con 0
+ logging syn
+ exec-timeout 0 0
+ login
+!
+line vty 0 4
+ password cisco
+ login
+!
+interface fastethernet 0/0
+ ip address 192.168.20.2 255.255.255.0
+ no shutdown
+!
+ip route 0.0.0.0 0.0.0.0 192.168.20.254
+!
+end
+write memory
