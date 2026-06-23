@@ -7,10 +7,10 @@
 
 # 🌐 GRE Tunnel Study (Static / Dynamic / MGRE)
 
-> Cisco 라우터를 활용한 **GRE Tunnel (Static / Dynamic / MGRE)** 구성 실습 저장소입니다.  
+> Cisco 라우터를 활용한 **GRE Tunnel** 종합 실습 저장소입니다.  
 > Frame-Relay 백본 위에 OSPF / EIGRP로 공중망(Public Network)을 구성하고,  
-> 본사 ↔ 지사 간을 **GRE Tunnel** 및 **MGRE (Multipoint GRE) + NHRP**로 연결한 후,  
-> NAT Overload(PAT) 및 EIGRP / OSPF 기반 사설망 라우팅까지 구성합니다.
+> 본사 ↔ 지사 간을 **GRE Tunnel (Static / Dynamic)** 및 **MGRE + NHRP**로 연결하며,  
+> NAT Overload(PAT) 및 EIGRP / OSPF 기반 사설망 라우팅까지 단계별로 학습합니다.
 
 ---
 
@@ -20,59 +20,24 @@
 - [2. 장비 구성 (Device Role)](#2-장비-구성-device-role)
 - [3. 기본 구성 (Basic Configuration)](#3-기본-구성-basic-configuration)
 - [4. Chapter 1. 공중망 구성 (OSPF)](#4-chapter-1-공중망-구성-ospf)
-- [5. Chapter 2. NAT Overload (PAT) 구성](#5-chapter-2-nat-overload-pat-구성)
-- [6. Chapter 3. GRE Tunnel (Static) 구성](#6-chapter-3-gre-tunnel-static-구성)
-- [7. Chapter 4. GRE Tunnel (Dynamic) + EIGRP 구성](#7-chapter-4-gre-tunnel-dynamic--eigrp-구성)
-- [8. Chapter 5. MGRE + NHRP 구성](#8-chapter-5-mgre--nhrp-구성)
-- [9. 패킷 분석 (Packet Analysis)](#9-패킷-분석-packet-analysis)
+- [5. Chapter 2. NAT Overload (PAT)](#5-chapter-2-nat-overload-pat)
+- [6. Chapter 3. GRE Tunnel (Static) — 물리 IP 기반](#6-chapter-3-gre-tunnel-static--물리-ip-기반)
+- [7. Chapter 4. GRE Tunnel (Dynamic) + EIGRP — Loopback 기반](#7-chapter-4-gre-tunnel-dynamic--eigrp--loopback-기반)
+- [8. Chapter 5. MGRE + NHRP](#8-chapter-5-mgre--nhrp)
+- [9. 패킷 캡슐화 구조 (Packet Encapsulation)](#9-패킷-캡슐화-구조-packet-encapsulation)
 - [10. 검증 명령어 (Verification)](#10-검증-명령어-verification)
 
 ---
 
 ## 1. 토폴로지 (Topology)
 
-#GRE
----
-```
-                  [R3:ISP-1]         [R5:ISP-3]
-                       \                 /
-                        \               /
-                         \             /
-   [R7:PC1]              [FRSW2 Frame-Relay]              [R8:PC2]
-       |                   /            \                    |
-       |                  /              \                   |
-   [SW1:GigaSW]      [R1:SOL-A]      [R2:SOL-B]         [SW2:GigaSW]
-       |                                                     |
-       └──── f0/0 ────────────────────────────── f0/0 ───────┘
+### GRE Tunnel (Static/Dynamic) Topology
 
-                  [R4:ISP-2]         [R6:ISP-4]
-```
+![GRE Tunnel Topology](/topology/GRE_Topology.png)
 
-![GRE_Topology](./topology/GRE_Topology.png)
----
+### MGRE Topology
 
-#MGRE
-```
-                       [ ISP-1 ]
-                          |
-                       [ GIT-HQ ]  ◀── NHRP Server (Hub)
-                       Tunnel123 (172.16.100.1)
-                       /          \
-                      /            \
-               [ ISP-2 ]          [ ISP-3 ]
-                  |                   |
-              [ GIT-A ]            [ GIT-B ]
-          (172.16.100.2)        (172.16.100.3)
-           NHRP Client            NHRP Client
-              (Spoke)               (Spoke)
-```
----
-![MGRE_Topology](./topology/MGRE_Topology.png)
----
-
-
-> **MGRE (Chapter 5)** 는 별도 토폴로지를 사용합니다. (`MGRE.net`)  
-> Hub(GIT-HQ) ↔ Spoke(GIT-A, GIT-B) 구조로 1개의 Multipoint Tunnel로 연결됩니다.
+![MGRE Topology](/topology/MGRE_Topology.png)
 
 ---
 
@@ -82,12 +47,12 @@
 
 | 장비 | Hostname | 역할 | 주요 IP |
 |------|----------|------|---------|
-| R1 | SOL-A (GIT-A) | 본사 Gateway | s1/0.10: 121.160.10.1 / Lo0: 100.100.1.1 |
-| R2 | SOL-B (GIT-B) | 지사 Gateway | s1/0.20: 121.160.20.2 / Lo0: 100.100.2.2 |
-| R3 | ISP-1 | 공중망 | 121.160.10.11 / 121.160.12.1 |
+| R1 | SOL-A (GIT-A) | 본사 Gateway | s1/0.10: 121.160.10.1 / Lo0: 100.100.1.1 / Lo1: 100.100.10.1 |
+| R2 | SOL-B (GIT-B) | 지사 Gateway | s1/0.20: 121.160.20.2 / Lo0: 100.100.2.2 / Lo1: 100.100.20.2 |
+| R3 | ISP-1 | 공중망 | 121.160.10.11 / 121.160.12.1 / Lo0: 100.100.11.1 |
 | R4 | ISP-2 | 공중망 | 121.160.12.2 / 121.160.23.2 / Lo120: 120.20.2.2 |
 | R5 | ISP-3 | 공중망 | 121.160.23.3 / 121.160.34.3 / Lo130: 130.30.3.3 |
-| R6 | ISP-4 | 공중망 | 121.160.34.4 / 121.160.20.4 |
+| R6 | ISP-4 | 공중망 | 121.160.34.4 / 121.160.20.4 / Lo0: 100.100.14.4 |
 | R7 | PC1 | SOL-A 내부 PC | 192.168.10.1 |
 | R8 | PC2 | SOL-B 내부 PC | 192.168.20.2 |
 
@@ -95,12 +60,12 @@
 
 | 장비 | Hostname | 역할 | 주요 IP |
 |------|----------|------|---------|
-| R1 | ISP-1 | 공중망 (HQ측) | F0/0: 211.241.14.11 / Lo0: 110.110.1.1 |
-| R2 | ISP-2 | 공중망 (A측) | F0/0: 211.241.25.22 / Lo0: 110.110.2.2 |
-| R3 | ISP-3 | 공중망 (B측) | F0/0: 211.241.36.33 / Lo0: 110.110.3.3 |
-| R4 | GIT-HQ | 서울 본사 (**NHRP Server / Hub**) | F0/0: 211.241.14.1 / Lo0: 220.220.1.1 |
-| R5 | GIT-A | 지사 A (NHRP Client / Spoke) | F0/0: 211.241.25.2 / Lo0: 220.220.2.2 |
-| R6 | GIT-B | 지사 B (NHRP Client / Spoke) | F0/0: 211.241.36.3 / Lo0: 220.220.3.3 |
+| R1 | ISP-1 | 공중망 (HQ측) | F0/0: 211.241.14.11 / Lo0: 110.110.1.1 / Lo1: 110.110.10.1 |
+| R2 | ISP-2 | 공중망 (A측) | F0/0: 211.241.25.22 / Lo0: 110.110.2.2 / Lo1: 110.110.20.2 |
+| R3 | ISP-3 | 공중망 (B측) | F0/0: 211.241.36.33 / Lo0: 110.110.3.3 / Lo1: 110.110.30.3 |
+| R4 | GIT-HQ | 서울 본사 (**NHRP Server / Hub**) | F0/0: 211.241.14.1 / F0/1: 192.168.1.1 / Lo0: 220.220.1.1 |
+| R5 | GIT-A | 지사 A (NHRP Client / Spoke) | F0/0: 211.241.25.2 / F0/1: 192.168.2.2 / Lo0: 220.220.2.2 |
+| R6 | GIT-B | 지사 B (NHRP Client / Spoke) | F0/0: 211.241.36.3 / F0/1: 192.168.3.3 / Lo0: 220.220.3.3 |
 
 ---
 
@@ -116,72 +81,102 @@
 - **OSPF Process** : 1
 - **Area** : 0
 - **Router-ID** : SOL = X.X.X.X / ISP = XX.XX.XX.XX
-- SOL-A, SOL-B의 **사설망은 OSPF에서 제외**
+- SOL-A, SOL-B의 사설망은 OSPF 제외
 - ISP의 모든 네트워크 + Loopback 120/130은 OSPF 포함
-- `passive-interface default` 사용으로 필요 인터페이스만 OSPF 활성화
 
-👉 상세 설정 : [`configs/chapter1-OSPF/`](./configs/chapter1-OSPF/)
-
----
-
-## 5. Chapter 2. NAT Overload (PAT) 구성
-
-- SOL-A : 192.168.10.0/24 → Serial1/0.10 IP (121.160.10.1) 로 PAT
-- SOL-B : 192.168.20.0/24 → Serial1/0.20 IP (121.160.20.2) 로 PAT
-
-👉 상세 설정 : [`configs/chapter2-NAT/`](./configs/chapter2-NAT/)
+👉 [`configs/chapter1-OSPF/`](./configs/chapter1-OSPF/)
 
 ---
 
-## 6. Chapter 3. GRE Tunnel (Static) 구성
+## 5. Chapter 2. NAT Overload (PAT)
+
+- SOL-A : 192.168.10.0/24 → 121.160.10.1 (Serial1/0.10) PAT
+- SOL-B : 192.168.20.0/24 → 121.160.20.2 (Serial1/0.20) PAT
+
+👉 [`configs/chapter2-NAT/`](./configs/chapter2-NAT/)
+
+---
+
+## 6. Chapter 3. GRE Tunnel (Static) — 물리 IP 기반
 
 - Tunnel IP : **172.16.10.0/24**
-- Tunnel Source/Destination : 물리 인터페이스 IP (121.160.10.1 ↔ 121.160.20.2)
+- Tunnel Source/Dest : 물리 인터페이스 IP (Serial 1/0.10 ↔ Serial 1/0.20)
 - 사설망 통신을 위해 **Static Route** 사용
+- Dynagen으로 GRE 캡슐화 패킷 캡처 실습 포함
 
-👉 상세 설정 : [`configs/chapter3-GRE-Static/`](./configs/chapter3-GRE-Static/)
+👉 [`configs/chapter3-GRE-Static/`](./configs/chapter3-GRE-Static/)
 
 ---
 
-## 7. Chapter 4. GRE Tunnel (Dynamic) + EIGRP 구성
+## 7. Chapter 4. GRE Tunnel (Dynamic) + EIGRP — Loopback 기반
 
 - Tunnel IP : **172.16.100.0/24**
-- Tunnel Source/Destination : **Loopback 0** IP (100.100.1.1 ↔ 100.100.2.2)
-- EIGRP AS 100 으로 Tunnel 위에서 사설망 동적 라우팅
+- Tunnel Source/Dest : **Loopback 0** IP (100.100.1.1 ↔ 100.100.2.2)
+- EIGRP AS 100 으로 Tunnel 위 사설망 동적 라우팅
 
-👉 상세 설정 : [`configs/chapter4-GRE-Dynamic/`](./configs/chapter4-GRE-Dynamic/)
+👉 [`configs/chapter4-GRE-Dynamic/`](./configs/chapter4-GRE-Dynamic/)
 
 ---
 
-## 8. Chapter 5. MGRE + NHRP 구성
+## 8. Chapter 5. MGRE + NHRP
 
 > **MGRE (Multipoint GRE)** : 하나의 Tunnel Interface로 다수의 라우터를 Multi-access 구조로 연결  
-> **NHRP (Next-Hop Resolution Protocol)** : MGRE 환경에서 Spoke의 Next-hop IP를 Hub에 동적으로 등록하기 위한 프로토콜
+> **NHRP** : MGRE 환경에서 Spoke의 Next-hop IP를 Hub에 동적으로 등록하기 위한 프로토콜
 
-- 공중망 : **EIGRP AS 2020** (ISP-1/2/3 구간)
-- 사설망 : **OSPF Process 626, Area 123** (GIT-HQ / GIT-A / GIT-B)
-- Tunnel IP : **172.16.100.0/24**
-- Tunnel Mode : `gre multipoint`
+본 챕터는 두 가지 시나리오로 구성됩니다.
+
+### 5-1. 시나리오 ① — ISP 라우터 간 MGRE (OSPF 공중망 + EIGRP 사설망)
+- 공중망 : OSPF Process 1 / Area 0
+- 사설망 : EIGRP AS 456
+- Tunnel IP : 172.16.123.0/24
+- Tunnel Source : **Loopback 0** IP
+- NHRP Network-ID : **123**, Authentication : **cisco**
+- Hub : ISP-1
+
+### 5-2. 시나리오 ② — GIT 라우터 간 MGRE (EIGRP 공중망 + OSPF 사설망)
+- 공중망 : EIGRP AS 2020
+- 사설망 : OSPF Process 626 / Area 123
+- Tunnel IP : 172.16.100.0/24
+- Tunnel Source : **FastEthernet 0/0** IP
 - NHRP Network-ID : **619**, Authentication : **soldesk**
-- Hub : GIT-HQ (NHRP Server)
-- Spoke : GIT-A, GIT-B (NHRP Client)
+- Hub : GIT-HQ
 - Tunnel Network-Type 변경 실습 (point-to-multipoint / non-broadcast)
 
-👉 상세 설정 : [`configs/chapter5-MGRE/`](./configs/chapter5-MGRE/)
+👉 [`configs/chapter5-MGRE/`](./configs/chapter5-MGRE/)
 
 ---
 
-## 9. 패킷 분석 (Packet Analysis)
+## 9. 패킷 캡슐화 구조 (Packet Encapsulation)
 
-GRE Tunnel을 통해 흐르는 패킷 캡슐화 구조:
+### GRE Static — SOL-A → SOL-B (ICMP Request)
 
 ```
-================================================================
-| FR DLCI | New IP Header  | GRE Header  | Original IP    | Payload |
-----------------------------------------------------------------
-|   103   | SA:121.160.10.1| Type 0x0800 | SA:192.168.10.1| ICMP    |
-|         | DA:121.160.20.2|             | DA:192.168.20.2|         |
-================================================================
+==========================================================================
+| FR DLCI | New IP Header     | GRE       | Original IP       | ICMP     |
+--------------------------------------------------------------------------
+|   102   | SA: 121.160.10.1  | Type      | SA: 172.16.10.1   | Type-8   |
+|         | DA: 121.160.20.2  | 0x0800    | DA: 172.16.10.2   | Request  |
+==========================================================================
+```
+
+### Static Route 적용 후 — PC1 → PC2 통신 흐름
+
+```
+[PC1] → [SOL-A] → [ISP 공중망] → [SOL-B] → [PC2]
+
+PC1 → SOL-A (Ethernet)
+=======================================================
+| Ethernet     | IP                 | ICMP            |
+| SA: PC1 Mac  | SA: 192.168.10.1   | Type-8 Request  |
+| DA: G/W Mac  | DA: 192.168.20.2   |                 |
+=======================================================
+
+SOL-A → ISP 구간 (Frame-Relay + GRE 캡슐화)
+=================================================================================
+| FR DLCI | New IP            | GRE    | Original IP        | ICMP             |
+| 103     | SA: 121.160.10.1  | 0x0800 | SA: 192.168.10.1   | Type-8 Request   |
+|         | DA: 121.160.20.2  |        | DA: 192.168.20.2   |                  |
+=================================================================================
 ```
 
 ---
@@ -191,6 +186,8 @@ GRE Tunnel을 통해 흐르는 패킷 캡슐화 구조:
 ```bash
 show ip interface brief
 show ip route
+show ip route connected
+show ip route eigrp
 show ip ospf neighbor
 show ip eigrp neighbors
 show ip nat translation
@@ -198,7 +195,9 @@ show interface tunnel 12
 show ip nhrp
 show ip nhrp brief
 show ip nhrp dynamic
+show ip ospf interface tunnel 123
 ping <destination>
+ping <destination> source <source-ip>
 traceroute <destination>
 ```
 
@@ -210,7 +209,7 @@ traceroute <destination>
 
 ## 🛠️ Tools Used
 
-- GNS3 / Dynamips
+- GNS3 / Dynamips / Dynagen
 - Cisco IOS (c7200)
 - Wireshark (패킷 캡처)
 
