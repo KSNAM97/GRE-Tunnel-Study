@@ -1,21 +1,48 @@
-# Chapter 5-3. MGRE Spoke (NHRP Client) - GIT-B (R6)
+# 📁 시나리오 ② - Step 3. MGRE Tunnel + NHRP 구성
 
-지사 B를 **MGRE Spoke** + **NHRP Client**로 구성합니다.
+GIT-HQ, GIT-A, GIT-B 구간을 **MGRE** + **NHRP**로 연결합니다.
 
-## 주요 설정 요소
+## 🎯 조건
 
-| 항목 | 값 |
-|------|-----|
-| Tunnel Interface | Tunnel 123 |
-| Tunnel IP | 172.16.100.3/24 |
-| Tunnel Source | 211.241.36.3 (F0/0) |
-| Tunnel Mode | gre multipoint |
-| NHRP Network-ID | 619 |
-| NHRP Authentication | soldesk |
-| NHRP Server (NHS) | 172.16.100.1 (Hub Tunnel IP) |
-| Static Mapping | 172.16.100.1 ↔ 211.241.14.1 (Hub) |
+- Tunnel IP : **172.16.100.0/24**
+- Tunnel Source : **FastEthernet 0/0** IP
+- 서울 본사 (**GIT-HQ**) = NHRP Server (Hub)
+- 나머지 = NHRP Client (Spoke)
+- NHRP Network-ID = **619**, Authentication = **soldesk**
 
-## Configuration
+---
+
+## GIT-HQ (R4) — Hub / NHRP Server
+
+```cisco
+interface tunnel 123
+ ip address 172.16.100.1 255.255.255.0
+ tunnel source 211.241.14.1
+ tunnel mode gre multipoint
+ ip nhrp network-id 619
+ ip nhrp authentication soldesk
+ ip nhrp map multicast dynamic
+!
+end
+```
+
+## GIT-A (R5) — Spoke / NHRP Client
+
+```cisco
+interface tunnel 123
+ ip address 172.16.100.2 255.255.255.0
+ tunnel source 211.241.25.2
+ tunnel mode gre multipoint
+ ip nhrp network-id 619
+ ip nhrp authentication soldesk
+ ip nhrp nhs 211.241.14.1
+ ip nhrp map multicast 220.220.1.1
+ ip nhrp map 172.16.100.1 211.241.14.1
+!
+end
+```
+
+## GIT-B (R6) — Spoke / NHRP Client
 
 ```cisco
 interface tunnel 123
@@ -24,21 +51,33 @@ interface tunnel 123
  tunnel mode gre multipoint
  ip nhrp network-id 619
  ip nhrp authentication soldesk
- ip nhrp nhs 172.16.100.1
- ip nhrp map multicast 211.241.14.1
+ ip nhrp nhs 211.241.14.1
+ ip nhrp map multicast 220.220.1.1
  ip nhrp map 172.16.100.1 211.241.14.1
 !
 end
-write memory
 ```
 
-## ✅ 검증
+---
+
+## ✅ 검증 — NHRP Dynamic Registration
 
 ```bash
-GIT-B# show ip nhrp brief
-Target          Via          NBMA          Mode    Intfc   Claimed
-172.16.100.1/32 172.16.100.1 211.241.14.1  static  Tu123   < >
+GIT-HQ# show ip nhrp dynamic
+172.16.100.2/32 via 172.16.100.2, Tunnel123 created 00:03:12, expire 01:59:31
+  Type: dynamic, Flags: authoritative unique registered used
+  NBMA address: 211.241.25.2
+172.16.100.3/32 via 172.16.100.3, Tunnel123 created 00:00:18, expire 01:59:41
+  Type: dynamic, Flags: authoritative unique registered used
+  NBMA address: 211.241.36.3
 
-GIT-B# ping 172.16.100.1
-GIT-B# ping 172.16.100.2   ! Spoke ↔ Spoke 통신
+GIT-A# show ip nhrp dynamic
+172.16.100.3/32 via 172.16.100.3, Tunnel123 created 00:00:03, expire 01:59:07
+  Type: dynamic, Flags: router used
+  NBMA address: 211.241.36.3
+
+GIT-B# show ip nhrp dynamic
+172.16.100.2/32 via 172.16.100.2, Tunnel123 created 00:00:37, expire 01:58:23
+  Type: dynamic, Flags: router used
+  NBMA address: 211.241.25.2
 ```
